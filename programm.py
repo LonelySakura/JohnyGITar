@@ -1,49 +1,62 @@
 import pygame
+from board import Board
 
 
-class Board:
-    # создание поля
+class Lines(Board):
     def __init__(self, width, height):
-        self.width = width
-        self.height = height
-        self.board = [[0] * width for _ in range(height)]
-        # значения по умолчанию
-        self.left = 10
-        self.top = 10
-        self.cell_size = 30
+        super().__init__(width, height)
+        self.colors = [None, pygame.Color('blue'), pygame.Color('red')]
+        self.select = None
 
-    # настройка внешнего вида
-    def set_view(self, left, top, cell_size):
-        self.left = left
-        self.top = top
-        self.cell_size = cell_size
+    def on_click(self, cell_coords):
+        col, row = cell_coords
+        if self.select:
+            if self.board[row][col] == 2:
+                self.board[row][col] = 1
+                self.select = None
+            if self.board[row][col] == 0:
+                if self.has_path(*self.select, col, row):
+                    self.board[row][col] = 1
+                    self.board[self.select[1]][self.select[0]] = 0
+                    self.select = None
+        else:
+            if self.board[row][col] == 0:
+                self.board[row][col] = 1
+            elif self.board[row][col] == 1:
+                self.select = col, row
+                self.board[row][col] = 2
 
-    # отрисовка клеточного поля на холсте
     def render(self, screen):
         for row in range(self.height):
             for col in range(self.width):
                 rect = pygame.Rect(
                     self.left + col * self.cell_size,
                     self.top + row * self.cell_size,
-                    self.cell_size,
-                    self.cell_size
+                    self.cell_size, self.cell_size
                 )
-                pygame.draw.rect(screen, self.color, rect, 1)
+                color = self.colors[self.board[row][col]]
+                if color:
+                    pygame.draw.circle(screen, color, rect.center, self.cell_size // 2 - 2)
+        super().render(screen)
 
-    # возвращает позицию клетки по координаторам
-    def get_cell(self, mouse_pos):
-        col = (mouse_pos[0] - self.left) // self.cell_size
-        row = (mouse_pos[1] - self.top) // self.cell_size
-        if 0 <= col < self.width and 0 <= row < self.height:
-            return col, row
+    def has_path(self, x1, y1, x2, y2):
+        return True
 
-    # изменение поля
-    def on_click(self, cell_coords):
-        pass
 
-    # диспечер событий нажатия
-    def get_click(self, mouse_pos):
-        cell = self.get_cell(mouse_pos)
-        if cell:
-            self.on_click(cell)
+pygame.init()
+w, h = 10, 10
+size = width, height = 20 + w * 30, 20 + h * 30
+screen = pygame.display.set_mode(size)
+board = Lines(w, h)
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            board.get_click(event.pos)
+    screen.fill((0, 0, 0))
+    board.render(screen)
+    pygame.display.flip()
+pygame.quit()
 
